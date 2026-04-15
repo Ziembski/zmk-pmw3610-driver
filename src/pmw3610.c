@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-#define DT_DRV_COMPAT pixart_pmw3610
+#define DT_DRV_COMPAT pixart_pmw3610_ino
 
 // 12-bit two's complement value to int16_t
 // adapted from https://stackoverflow.com/questions/70802306/convert-a-12-bit-signed-number-in-c
@@ -370,8 +370,8 @@ static int set_downshift_time(const struct device *dev, uint8_t reg_addr, uint32
          * Rest1 downshift time = PMW3610_REG_RUN_DOWNSHIFT
          *                        * 16 * Rest1_sample_period (default 40 ms)
          */
-        maxtime = 255 * 16 * CONFIG_PMW3610_REST1_SAMPLE_TIME_MS;
-        mintime = 16 * CONFIG_PMW3610_REST1_SAMPLE_TIME_MS;
+        maxtime = 255 * 16 * CONFIG_PMW3610_INO_REST1_SAMPLE_TIME_MS;
+        mintime = 16 * CONFIG_PMW3610_INO_REST1_SAMPLE_TIME_MS;
         break;
 
     case PMW3610_REG_REST2_DOWNSHIFT:
@@ -379,8 +379,8 @@ static int set_downshift_time(const struct device *dev, uint8_t reg_addr, uint32
          * Rest2 downshift time = PMW3610_REG_REST2_DOWNSHIFT
          *                        * 128 * Rest2 rate (default 100 ms)
          */
-        maxtime = 255 * 128 * CONFIG_PMW3610_REST2_SAMPLE_TIME_MS;
-        mintime = 128 * CONFIG_PMW3610_REST2_SAMPLE_TIME_MS;
+        maxtime = 255 * 128 * CONFIG_PMW3610_INO_REST2_SAMPLE_TIME_MS;
+        mintime = 128 * CONFIG_PMW3610_INO_REST2_SAMPLE_TIME_MS;
         break;
 
     default:
@@ -471,7 +471,7 @@ static int pmw3610_async_init_configure(const struct device *dev) {
 
     // cpi
     if (!err) {
-        err = set_cpi(dev, CONFIG_PMW3610_CPI);
+        err = set_cpi(dev, CONFIG_PMW3610_INO_CPI);
     }
 
     // set performace register: run mode, vel_rate, poshi_rate, poslo_rate
@@ -483,31 +483,31 @@ static int pmw3610_async_init_configure(const struct device *dev) {
     // required downshift and rate registers
     if (!err) {
         err = set_downshift_time(dev, PMW3610_REG_RUN_DOWNSHIFT,
-                                 CONFIG_PMW3610_RUN_DOWNSHIFT_TIME_MS);
+                                 CONFIG_PMW3610_INO_RUN_DOWNSHIFT_TIME_MS);
     }
     if (!err) {
-        err = set_sample_time(dev, PMW3610_REG_REST1_PERIOD, CONFIG_PMW3610_REST1_SAMPLE_TIME_MS);
+        err = set_sample_time(dev, PMW3610_REG_REST1_PERIOD, CONFIG_PMW3610_INO_REST1_SAMPLE_TIME_MS);
     }
     if (!err) {
         err = set_downshift_time(dev, PMW3610_REG_REST1_DOWNSHIFT,
-                                 CONFIG_PMW3610_REST1_DOWNSHIFT_TIME_MS);
+                                 CONFIG_PMW3610_INO_REST1_DOWNSHIFT_TIME_MS);
     }
 
     // downshift time for each rest mode
-#if CONFIG_PMW3610_REST2_DOWNSHIFT_TIME_MS > 0
+#if CONFIG_PMW3610_INO_REST2_DOWNSHIFT_TIME_MS > 0
     if (!err) {
         err = set_downshift_time(dev, PMW3610_REG_REST2_DOWNSHIFT,
-                                 CONFIG_PMW3610_REST2_DOWNSHIFT_TIME_MS);
+                                 CONFIG_PMW3610_INO_REST2_DOWNSHIFT_TIME_MS);
     }
 #endif
-#if CONFIG_PMW3610_REST2_SAMPLE_TIME_MS >= 10
+#if CONFIG_PMW3610_INO_REST2_SAMPLE_TIME_MS >= 10
     if (!err) {
-        err = set_sample_time(dev, PMW3610_REG_REST2_PERIOD, CONFIG_PMW3610_REST2_SAMPLE_TIME_MS);
+        err = set_sample_time(dev, PMW3610_REG_REST2_PERIOD, CONFIG_PMW3610_INO_REST2_SAMPLE_TIME_MS);
     }
 #endif
-#if CONFIG_PMW3610_REST3_SAMPLE_TIME_MS >= 10
+#if CONFIG_PMW3610_INO_REST3_SAMPLE_TIME_MS >= 10
     if (!err) {
-        err = set_sample_time(dev, PMW3610_REG_REST3_PERIOD, CONFIG_PMW3610_REST3_SAMPLE_TIME_MS);
+        err = set_sample_time(dev, PMW3610_REG_REST3_PERIOD, CONFIG_PMW3610_INO_REST3_SAMPLE_TIME_MS);
     }
 #endif
     if (err) {
@@ -550,7 +550,7 @@ static bool automouse_triggered = false;
 static void activate_automouse_layer() {
     automouse_triggered = true;
     zmk_keymap_layer_activate(AUTOMOUSE_LAYER);
-    k_timer_start(&automouse_layer_timer, K_MSEC(CONFIG_PMW3610_AUTOMOUSE_TIMEOUT_MS), K_NO_WAIT);
+    k_timer_start(&automouse_layer_timer, K_MSEC(CONFIG_PMW3610_INO_AUTOMOUSE_TIMEOUT_MS), K_NO_WAIT);
 }
 
 static void deactivate_automouse_layer(struct k_timer *timer) {
@@ -591,11 +591,11 @@ static int pmw3610_report_data(const struct device *dev) {
     bool input_mode_changed = data->curr_mode != input_mode;
     switch (input_mode) {
     case MOVE:
-        set_cpi_if_needed(dev, CONFIG_PMW3610_CPI);
-        dividor = CONFIG_PMW3610_CPI_DIVIDOR;
+        set_cpi_if_needed(dev, CONFIG_PMW3610_INO_CPI);
+        dividor = CONFIG_PMW3610_INO_CPI_DIVIDOR;
         break;
     case SCROLL:
-        set_cpi_if_needed(dev, CONFIG_PMW3610_CPI);
+        set_cpi_if_needed(dev, CONFIG_PMW3610_INO_CPI);
         if (input_mode_changed) {
             data->scroll_delta_x = 0;
             data->scroll_delta_y = 0;
@@ -603,8 +603,8 @@ static int pmw3610_report_data(const struct device *dev) {
         dividor = 1; // this should be handled with the ticks rather than dividors
         break;
     case SNIPE:
-        set_cpi_if_needed(dev, CONFIG_PMW3610_SNIPE_CPI);
-        dividor = CONFIG_PMW3610_SNIPE_CPI_DIVIDOR;
+        set_cpi_if_needed(dev, CONFIG_PMW3610_INO_SNIPE_CPI);
+        dividor = CONFIG_PMW3610_INO_SNIPE_CPI_DIVIDOR;
         break;
     default:
         return -ENOTSUP;
@@ -633,29 +633,29 @@ static int pmw3610_report_data(const struct device *dev) {
     int16_t x;
     int16_t y;
 
-    if (IS_ENABLED(CONFIG_PMW3610_ORIENTATION_0)) {
+    if (IS_ENABLED(CONFIG_PMW3610_INO_ORIENTATION_0)) {
         x = -raw_x;
         y = raw_y;
-    } else if (IS_ENABLED(CONFIG_PMW3610_ORIENTATION_90)) {
+    } else if (IS_ENABLED(CONFIG_PMW3610_INO_ORIENTATION_90)) {
         x = raw_y;
         y = -raw_x;
-    } else if (IS_ENABLED(CONFIG_PMW3610_ORIENTATION_180)) {
+    } else if (IS_ENABLED(CONFIG_PMW3610_INO_ORIENTATION_180)) {
         x = raw_x;
         y = -raw_y;
-    } else if (IS_ENABLED(CONFIG_PMW3610_ORIENTATION_270)) {
+    } else if (IS_ENABLED(CONFIG_PMW3610_INO_ORIENTATION_270)) {
         x = -raw_y;
         y = raw_x;
     }
 
-    if (IS_ENABLED(CONFIG_PMW3610_INVERT_X)) {
+    if (IS_ENABLED(CONFIG_PMW3610_INO_INVERT_X)) {
         x = -x;
     }
 
-    if (IS_ENABLED(CONFIG_PMW3610_INVERT_Y)) {
+    if (IS_ENABLED(CONFIG_PMW3610_INO_INVERT_Y)) {
         y = -y;
     }
 
-#ifdef CONFIG_PMW3610_SMART_ALGORITHM
+#ifdef CONFIG_PMW3610_INO_SMART_ALGORITHM
     int16_t shutter =
         ((int16_t)(buf[PMW3610_SHUTTER_H_POS] & 0x01) << 8) + buf[PMW3610_SHUTTER_L_POS];
     if (data->sw_smart_flag && shutter < 45) {
@@ -671,7 +671,7 @@ static int pmw3610_report_data(const struct device *dev) {
     }
 #endif
 
-#ifdef CONFIG_PMW3610_POLLING_RATE_125_SW
+#ifdef CONFIG_PMW3610_INO_POLLING_RATE_125_SW
     int64_t curr_time = k_uptime_get();
     if (data->last_poll_time == 0 || curr_time - data->last_poll_time > 128) {
         data->last_poll_time = curr_time;
@@ -694,13 +694,13 @@ static int pmw3610_report_data(const struct device *dev) {
         } else {
             data->scroll_delta_x += x;
             data->scroll_delta_y += y;
-            if (abs(data->scroll_delta_y) > CONFIG_PMW3610_SCROLL_TICK) {
+            if (abs(data->scroll_delta_y) > CONFIG_PMW3610_INO_SCROLL_TICK) {
                 input_report_rel(dev, INPUT_REL_WHEEL,
                                  data->scroll_delta_y > 0 ? PMW3610_SCROLL_Y_NEGATIVE : PMW3610_SCROLL_Y_POSITIVE,
                                  true, K_FOREVER);
                 data->scroll_delta_x = 0;
                 data->scroll_delta_y = 0;
-            } else if (abs(data->scroll_delta_x) > CONFIG_PMW3610_SCROLL_TICK) {
+            } else if (abs(data->scroll_delta_x) > CONFIG_PMW3610_INO_SCROLL_TICK) {
                 input_report_rel(dev, INPUT_REL_HWHEEL,
                                  data->scroll_delta_x > 0 ? PMW3610_SCROLL_X_NEGATIVE : PMW3610_SCROLL_X_POSITIVE,
                                  true, K_FOREVER);
